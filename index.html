@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>团队共享备忘录</title>
+<title>团队知识库 & 任务备忘</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -11,136 +11,332 @@
     background: #f6f7fb;
     color: #1a1d2e;
     line-height: 1.6;
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem;
   }
-  .wrap { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 1.5rem; margin-bottom: 1.5rem; color: #1a1d2e; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+  .sub { color: #6b7185; font-size: 0.85rem; margin-bottom: 1.25rem; }
+
+  .tabs {
+    display: flex;
+    gap: 0.4rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.3rem;
+    margin-bottom: 1.25rem;
+  }
+  .tab {
+    flex: 1;
+    padding: 0.55rem 0.75rem;
+    border: none;
+    background: transparent;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 0.92rem;
+    color: #6b7185;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .tab.active { background: #6366f1; color: #fff; }
 
   .add {
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    gap: 0.5rem;
+    padding: 0.85rem;
+    margin-bottom: 1rem;
   }
-  .add input {
-    flex: 1;
+  .add input, .add textarea {
+    width: 100%;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.95rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.92rem;
     font-family: inherit;
     outline: none;
+    margin-bottom: 0.5rem;
   }
-  .add input:focus { border-color: #6366f1; }
-  .add button {
+  .add input:focus, .add textarea:focus { border-color: #6366f1; }
+  .add textarea { resize: vertical; min-height: 80px; }
+  .add .meta {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+  .add .meta input { margin: 0; flex: 1; min-width: 120px; }
+  .add .btnrow { display: flex; justify-content: flex-end; gap: 0.4rem; }
+  .btn {
     background: #6366f1;
     color: #fff;
     border: none;
     border-radius: 6px;
-    padding: 0.5rem 1.25rem;
-    font-size: 0.95rem;
+    padding: 0.45rem 1rem;
+    font-size: 0.88rem;
     cursor: pointer;
     font-family: inherit;
   }
-  .add button:hover { background: #4f46e5; }
+  .btn:hover { background: #4f46e5; }
+  .btn-ghost { background: transparent; color: #6b7185; border: 1px solid #e5e7eb; }
+  .btn-ghost:hover { background: #f3f4f6; color: #1a1d2e; }
 
+  /* task item */
   .item {
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
-    padding: 0.85rem 1rem;
-    margin-bottom: 0.6rem;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 0.5rem;
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    align-items: flex-start;
+    gap: 0.65rem;
   }
-  .item.done span { text-decoration: line-through; color: #9ca3af; }
+  .item.done .t-text { text-decoration: line-through; color: #9ca3af; }
   .item input[type="checkbox"] {
     width: 18px; height: 18px;
     accent-color: #6366f1;
     cursor: pointer;
     flex-shrink: 0;
+    margin-top: 2px;
   }
-  .item span { flex: 1; font-size: 0.95rem; word-break: break-word; }
-  .item .del {
+  .t-body { flex: 1; }
+  .t-text { font-size: 0.95rem; word-break: break-word; }
+  .t-meta { font-size: 0.78rem; color: #6b7185; margin-top: 0.2rem; }
+  .t-meta .tag {
+    background: #eef2ff;
+    color: #4f46e5;
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    margin-right: 0.35rem;
+  }
+  .t-actions { display: flex; gap: 0.25rem; }
+  .t-actions button {
     background: transparent;
     border: none;
     color: #9ca3af;
     cursor: pointer;
-    font-size: 1.1rem;
-    padding: 0 0.25rem;
+    font-size: 1rem;
+    padding: 0 0.2rem;
   }
-  .item .del:hover { color: #ef4444; }
+  .t-actions .del:hover { color: #ef4444; }
+  .t-actions .edit:hover { color: #6366f1; }
 
-  .empty { text-align: center; color: #9ca3af; padding: 2rem 0; }
+  /* knowledge item */
+  .doc {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 0.7rem;
+  }
+  .doc h3 {
+    font-size: 1rem;
+    margin-bottom: 0.45rem;
+    color: #1a1d2e;
+    word-break: break-word;
+  }
+  .doc .body {
+    font-size: 0.9rem;
+    color: #4b5563;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 0.5rem;
+  }
+  .doc .actions {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
+    border-top: 1px dashed #e5e7eb;
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  .doc .actions button {
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    border-radius: 5px;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: inherit;
+    color: #6b7185;
+  }
+  .doc .actions .save:hover { color: #6366f1; border-color: #6366f1; }
+  .doc .actions .del:hover { color: #ef4444; border-color: #ef4444; }
+
+  .empty { text-align: center; color: #9ca3af; padding: 2rem 0; font-size: 0.9rem; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>团队备忘录</h1>
+  <h1>团队知识库 & 任务备忘</h1>
+  <div class="sub">左侧切换标签：长期共享信息 ↔ 任务分配备忘</div>
 
-  <div class="add">
-    <input type="text" id="input" placeholder="输入一条备忘，回车保存…" onkeydown="if(event.key==='Enter')add()">
-    <button onclick="add()">添加</button>
+  <div class="tabs">
+    <button class="tab active" data-tab="task" onclick="switchTab('task')">📋 任务备忘</button>
+    <button class="tab" data-tab="doc" onclick="switchTab('doc')">📚 信息共享</button>
   </div>
 
-  <div id="list"></div>
+  <!-- TASK PANEL -->
+  <div id="panel-task">
+    <div class="add">
+      <div class="meta">
+        <input type="text" id="tText" placeholder="任务内容…" onkeydown="if(event.key==='Enter')addTask()">
+        <input type="text" id="tWho" placeholder="负责人（可选）" style="max-width:140px">
+      </div>
+      <div class="btnrow">
+        <button class="btn" onclick="addTask()">+ 添加任务</button>
+      </div>
+    </div>
+    <div id="taskList"></div>
+  </div>
+
+  <!-- DOC PANEL -->
+  <div id="panel-doc" style="display:none">
+    <div class="add">
+      <input type="text" id="dTitle" placeholder="标题，如：实验操作流程">
+      <textarea id="dBody" placeholder="详细内容，支持换行…"></textarea>
+      <div class="btnrow">
+        <button class="btn" onclick="addDoc()">+ 发布信息</button>
+      </div>
+    </div>
+    <div id="docList"></div>
+  </div>
 </div>
 
 <script>
-const KEY = 'simple-team-memo';
-let items = [];
+const TASK_KEY = 'tm-tasks';
+const DOC_KEY  = 'tm-docs';
 
-function load() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    items = raw ? JSON.parse(raw) : [];
-  } catch (e) { items = []; }
-  render();
-}
-function save() { localStorage.setItem(KEY, JSON.stringify(items)); }
+let tasks = [];
+let docs  = [];
 
-function add() {
-  const el = document.getElementById('input');
-  const text = el.value.trim();
-  if (!text) return;
-  items.unshift({ text, done: false });
-  el.value = '';
-  save();
-  render();
-}
-
-function toggle(i) {
-  items[i].done = !items[i].done;
-  save();
-  render();
-}
-
-function del(i) {
-  items.splice(i, 1);
-  save();
-  render();
-}
-
-function render() {
-  const el = document.getElementById('list');
-  if (!items.length) {
-    el.innerHTML = '<div class="empty">还没有备忘，在上面输入一条吧</div>';
-    return;
+/* ---- storage ---- */
+function loadAll() {
+  try { tasks = JSON.parse(localStorage.getItem(TASK_KEY) || '[]'); } catch(e){ tasks=[]; }
+  try { docs  = JSON.parse(localStorage.getItem(DOC_KEY)  || '[]'); } catch(e){ docs=[]; }
+  // 默认示例文档
+  if (!docs.length) {
+    docs = [{
+      id: 'd_' + Date.now(),
+      title: '示例：实验操作标准流程',
+      body: '1. 样品前处理\n2. 试剂配制（A:B = 1:3）\n3. 上机测量并记录\n4. 数据归档至共享盘 /lab/yyyy-mm-dd\n\n注意事项：佩戴手套，避免交叉污染。',
+      ts: Date.now()
+    }];
+    saveDocs();
   }
-  el.innerHTML = items.map((m, i) => `
-    <div class="item ${m.done ? 'done' : ''}">
-      <input type="checkbox" ${m.done ? 'checked' : ''} onclick="toggle(${i})">
-      <span>${m.text.replace(/</g, '&lt;')}</span>
-      <button class="del" onclick="del(${i})" title="删除">×</button>
+}
+function saveTasks(){ localStorage.setItem(TASK_KEY, JSON.stringify(tasks)); }
+function saveDocs(){  localStorage.setItem(DOC_KEY,  JSON.stringify(docs)); }
+
+/* ---- tabs ---- */
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.getElementById('panel-task').style.display = name === 'task' ? '' : 'none';
+  document.getElementById('panel-doc').style.display  = name === 'doc'  ? '' : 'none';
+}
+
+/* ---- tasks ---- */
+function addTask() {
+  const tEl = document.getElementById('tText');
+  const wEl = document.getElementById('tWho');
+  const text = tEl.value.trim();
+  if (!text) return;
+  tasks.unshift({ text, who: wEl.value.trim(), done: false, ts: Date.now() });
+  tEl.value = ''; wEl.value = '';
+  saveTasks(); renderTasks();
+}
+
+function toggleTask(i) { tasks[i].done = !tasks[i].done; saveTasks(); renderTasks(); }
+function delTask(i)    { tasks.splice(i,1); saveTasks(); renderTasks(); }
+function editTask(i)   {
+  const nv = prompt('修改任务内容：', tasks[i].text);
+  if (nv !== null && nv.trim()) { tasks[i].text = nv.trim(); saveTasks(); renderTasks(); }
+}
+
+function renderTasks() {
+  const el = document.getElementById('taskList');
+  if (!tasks.length) { el.innerHTML = '<div class="empty">还没有任务，在上面添加一条吧</div>'; return; }
+  el.innerHTML = tasks.map((t,i) => `
+    <div class="item ${t.done?'done':''}">
+      <input type="checkbox" ${t.done?'checked':''} onclick="toggleTask(${i})">
+      <div class="t-body">
+        <div class="t-text">${esc(t.text)}</div>
+        ${t.who ? `<div class="t-meta"><span class="tag">@${esc(t.who)}</span></div>` : ''}
+      </div>
+      <div class="t-actions">
+        <button class="edit" onclick="editTask(${i})" title="编辑">✎</button>
+        <button class="del" onclick="delTask(${i})" title="删除">×</button>
+      </div>
     </div>
   `).join('');
 }
 
-load();
+/* ---- docs ---- */
+function addDoc() {
+  const tEl = document.getElementById('dTitle');
+  const bEl = document.getElementById('dBody');
+  const title = tEl.value.trim();
+  const body  = bEl.value.trim();
+  if (!title || !body) { alert('请填写标题和内容'); return; }
+  docs.unshift({ id: 'd_' + Date.now(), title, body, ts: Date.now() });
+  tEl.value = ''; bEl.value = '';
+  saveDocs(); renderDocs();
+}
+
+function delDoc(id) {
+  if (!confirm('确定删除这条信息吗？')) return;
+  docs = docs.filter(d => d.id !== id);
+  saveDocs(); renderDocs();
+}
+
+function editDoc(id) {
+  const d = docs.find(x => x.id === id);
+  if (!d) return;
+  const card = document.querySelector('[data-id="' + id + '"]');
+  card.innerHTML = `
+    <input type="text" id="ed-t-${id}" value="${esc(d.title)}" style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:0.45rem 0.65rem;font-size:0.95rem;font-family:inherit;margin-bottom:0.4rem">
+    <textarea id="ed-b-${id}" style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:0.45rem 0.65rem;font-size:0.9rem;font-family:inherit;min-height:120px;resize:vertical">${esc(d.body)}</textarea>
+    <div class="actions">
+      <button class="save" onclick="saveDoc('${id}')">保存</button>
+      <button class="del" onclick="renderDocs()">取消</button>
+    </div>
+  `;
+}
+
+function saveDoc(id) {
+  const d = docs.find(x => x.id === id);
+  if (!d) return;
+  const t = document.getElementById('ed-t-' + id).value.trim();
+  const b = document.getElementById('ed-b-' + id).value.trim();
+  if (!t || !b) { alert('标题和内容不能为空'); return; }
+  d.title = t; d.body = b; d.ts = Date.now();
+  saveDocs(); renderDocs();
+}
+
+function renderDocs() {
+  const el = document.getElementById('docList');
+  if (!docs.length) { el.innerHTML = '<div class="empty">还没有共享信息，在上面发布第一条</div>'; return; }
+  el.innerHTML = docs.map(d => `
+    <div class="doc" data-id="${d.id}">
+      <h3>${esc(d.title)}</h3>
+      <div class="body">${esc(d.body)}</div>
+      <div class="actions">
+        <button class="save" onclick="editDoc('${d.id}')">编辑</button>
+        <button class="del" onclick="delDoc('${d.id}')">删除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ---- utils ---- */
+function esc(s){ return String(s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+/* ---- init ---- */
+loadAll();
+renderTasks();
+renderDocs();
 </script>
 </body>
 </html>
