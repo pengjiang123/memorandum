@@ -1,565 +1,1039 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>团队知识库 & 任务备忘</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>团队实时备忘 · Live Team Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-  /* ===== 基础排版 ===== */
-  * { box-sizing: border-box; margin: 0; padding:0; }
-  body {
-    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
-    background: #f6f7fb;
-    color: #1a1d2e;
-    line-height: 1.6;
-    padding: 1.5rem 1rem;
+  :root{
+    --paper:#f3ede1;
+    --paper-2:#ece4d3;
+    --ink:#1a1814;
+    --ink-soft:#3a352c;
+    --muted:#7a7261;
+    --rule:#1a1814;
+    --accent:#c8472a;
+    --accent-2:#e9b949;
+    --tag-1:#c8472a;
+    --tag-2:#2a5c8a;
+    --tag-3:#3d6b3a;
+    --tag-4:#6b3a78;
+    --tag-5:#b56a1a;
+    --tag-6:#1a1814;
   }
-  .wrap { max-width: 760px; margin: 0 auto; }
-  h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
-  .sub { color: #6b7185; font-size: 0.85rem; margin-bottom: 1.25rem; }
 
-  /* ===== 顶部标签栏 ===== */
-  .tabs {
-    display: flex; gap: 0.4rem;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 0.3rem;
-    margin-bottom: 1.25rem;
-  }
-  .tab {
-    flex: 1;
-    padding: 0.55rem 0.75rem;
-    border: none; background: transparent;
-    border-radius: 7px;
-    font-family: inherit;
-    font-size: 0.92rem;
-    color: #6b7185;
-    cursor: pointer;
-    font-weight: 500;
-  }
-  .tab.active { background: #6366f1; color: #fff; }
+  *{box-sizing:border-box;margin:0;padding:0}
 
-  /* ===== 添加表单 ===== */
-  .add {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 0.85rem;
-    margin-bottom: 1rem;
+  html,body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Noto Sans SC','Fraunces',serif;
+    font-feature-settings:"ss01","ss03";
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
   }
-  .add input, .add textarea {
-    width: 100%;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 0.5rem 0.7rem;
-    font-size: 0.92rem;
-    font-family: inherit;
-    outline: none;
-    margin-bottom: 0.5rem;
-  }
-  .add input:focus, .add textarea:focus { border-color: #6366f1; }
-  .add textarea { resize: vertical; min-height: 80px; }
-  .add .meta {
-    display: flex; gap: 0.5rem;
-    align-items: center; flex-wrap: wrap;
-    margin-bottom: 0.5rem;
-  }
-  .add .meta input { margin: 0; flex: 1; min-width: 120px; }
-  .add .btnrow { display: flex; justify-content: flex-end; gap: 0.4rem; }
-  .btn {
-    background: #6366f1;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 0.45rem 1rem;
-    font-size: 0.88rem;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .btn:hover { background: #4f46e5; }
-  .btn-ghost { background: transparent; color: #6b7185; border: 1px solid #e5e7eb; }
-  .btn-ghost:hover { background: #f3f4f6; color: #1a1d2e; }
 
-  /* ===== 任务条目 ===== */
-  .item {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 0.75rem 0.9rem;
-    margin-bottom: 0.5rem;
-    display: flex; align-items: flex-start; gap: 0.65rem;
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(232,185,73,.12), transparent 35%),
+      radial-gradient(circle at 92% 92%, rgba(200,71,42,.08), transparent 40%),
+      repeating-linear-gradient(0deg, transparent 0 31px, rgba(26,24,20,.05) 31px 32px),
+      var(--paper);
+    background-attachment:fixed;
+    padding:48px 32px 96px;
   }
-  .item.done .t-text { text-decoration: line-through; color: #9ca3af; }
-  .item input[type="checkbox"] {
-    width: 18px; height: 18px;
-    accent-color: #6366f1;
-    cursor: pointer;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-  .t-body { flex: 1; }
-  .t-text { font-size: 0.95rem; word-break: break-word; }
-  .t-meta { font-size: 0.78rem; color: #6b7185; margin-top: 0.2rem; }
-  .t-meta .tag {
-    background: #eef2ff; color: #4f46e5;
-    padding: 0.05rem 0.5rem;
-    border-radius: 999px;
-    margin-right: 0.35rem;
-  }
-  .t-actions { display: flex; gap: 0.25rem; }
-  .t-actions button {
-    background: transparent; border: none;
-    color: #9ca3af; cursor: pointer;
-    font-size: 1rem; padding: 0 0.2rem;
-  }
-  .t-actions .del:hover  { color: #ef4444; }
-  .t-actions .edit:hover { color: #6366f1; }
 
-  /* ===== 信息共享卡片 ===== */
-  .doc {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 1rem 1.1rem;
-    margin-bottom: 0.7rem;
+  /* ============ HEADER ============ */
+  .masthead{
+    max-width:1200px;
+    margin:0 auto 40px;
+    border-top:6px double var(--rule);
+    border-bottom:2px solid var(--rule);
+    padding:18px 0 22px;
+    position:relative;
   }
-  .doc h3 {
-    font-size: 1rem;
-    margin-bottom: 0.45rem;
-    color: #1a1d2e;
-    word-break: break-word;
+  .masthead::before, .masthead::after{
+    content:"";
+    position:absolute;
+    left:0;right:0;
+    height:1px;
+    background:var(--rule);
   }
-  .doc .body {
-    font-size: 0.9rem; color: #4b5563;
-    white-space: pre-wrap;
-    word-break: break-word;
-    margin-bottom: 0.5rem;
-  }
-  .doc .actions {
-    display: flex; gap: 0.4rem;
-    justify-content: flex-end;
-    border-top: 1px dashed #e5e7eb;
-    padding-top: 0.5rem;
-    margin-top: 0.5rem;
-  }
-  .doc .actions button {
-    background: transparent;
-    border: 1px solid #e5e7eb;
-    border-radius: 5px;
-    padding: 0.25rem 0.7rem;
-    font-size: 0.78rem;
-    cursor: pointer;
-    font-family: inherit;
-    color: #6b7185;
-  }
-  .doc .actions .save:hover { color: #6366f1; border-color: #6366f1; }
-  .doc .actions .del:hover  { color: #ef4444; border-color: #ef4444; }
+  .masthead::before{top:-12px}
+  .masthead::after{bottom:-6px}
 
-  .empty { text-align: center; color: #9ca3af; padding: 2rem 0; font-size: 0.9rem; }
-
-  /* ===== 右上角连接状态 ===== */
-  .status {
-    position: fixed;
-    top: 0.6rem; right: 0.6rem;
-    padding: 0.25rem 0.65rem;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    background: #fef3c7; color: #92400e;
-    border: 1px solid #fde68a;
-    z-index: 99;
+  .title-row{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:24px;
+    flex-wrap:wrap;
   }
-  .status.online { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
-  .status.error { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+  .title-left{display:flex;align-items:flex-end;gap:18px}
+  .vol{
+    font-family:'Fraunces',serif;
+    font-weight:800;
+    font-style:italic;
+    font-size:56px;
+    line-height:1;
+    letter-spacing:-.02em;
+    color:var(--ink);
+  }
+  .vol small{
+    display:block;
+    font-style:normal;
+    font-weight:400;
+    font-size:12px;
+    letter-spacing:.3em;
+    color:var(--muted);
+    margin-top:6px;
+    text-transform:uppercase;
+  }
+  .title-main{
+    font-family:'Fraunces',serif;
+    font-weight:300;
+    font-size:72px;
+    line-height:.95;
+    letter-spacing:-.025em;
+    color:var(--ink);
+  }
+  .title-main em{
+    font-style:italic;
+    font-weight:600;
+    color:var(--accent);
+  }
+  .subtitle{
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    font-size:14px;
+    color:var(--ink-soft);
+    margin-top:6px;
+    letter-spacing:.02em;
+  }
+
+  .meta-strip{
+    display:flex;
+    gap:18px;
+    align-items:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .meta-strip .dot{
+    display:inline-block;
+    width:8px;height:8px;border-radius:50%;
+    background:var(--tag-3);
+    box-shadow:0 0 0 3px rgba(61,107,58,.18);
+    animation:pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 3px rgba(61,107,58,.18)}
+    50%{box-shadow:0 0 0 6px rgba(61,107,58,.05)}
+  }
+  .meta-strip .sep{color:var(--muted)}
+
+  /* ============ TOOLBAR ============ */
+  .toolbar{
+    max-width:1200px;
+    margin:0 auto 28px;
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    align-items:center;
+    padding:14px 0;
+    border-bottom:1px dashed var(--rule);
+  }
+  .toolbar input[type=text]{
+    flex:1;
+    min-width:240px;
+    background:transparent;
+    border:none;
+    border-bottom:2px solid var(--ink);
+    padding:8px 4px;
+    font-family:'Fraunces',serif;
+    font-size:18px;
+    color:var(--ink);
+    outline:none;
+  }
+  .toolbar input[type=text]::placeholder{
+    color:var(--muted);
+    font-style:italic;
+  }
+  .toolbar input[type=text]:focus{
+    border-bottom-color:var(--accent);
+  }
+  .tag-select{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    background:var(--paper-2);
+    border:2px solid var(--ink);
+    padding:8px 12px;
+    color:var(--ink);
+    cursor:pointer;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+  }
+  .btn{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    background:var(--ink);
+    color:var(--paper);
+    border:2px solid var(--ink);
+    padding:9px 16px;
+    cursor:pointer;
+    transition:all .15s ease;
+    font-weight:600;
+  }
+  .btn:hover{background:var(--accent);border-color:var(--accent)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.ghost:hover{background:var(--ink);color:var(--paper)}
+
+  .stats{
+    max-width:1200px;
+    margin:0 auto 24px;
+    display:flex;
+    gap:32px;
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    color:var(--ink-soft);
+    font-size:14px;
+    border-bottom:1px solid var(--rule);
+    padding-bottom:14px;
+  }
+  .stats span b{
+    font-style:normal;
+    font-weight:600;
+    color:var(--accent);
+    font-size:20px;
+    margin-right:4px;
+  }
+
+  /* ============ COMPOSER ============ */
+  .composer{
+    max-width:1200px;
+    margin:0 auto 40px;
+    background:var(--paper-2);
+    border:2px solid var(--ink);
+    padding:0;
+    position:relative;
+    box-shadow:8px 8px 0 var(--ink);
+  }
+  .composer::before{
+    content:"✎   COMPOSE NEW ENTRY  ✎";
+    position:absolute;
+    top:-12px;left:18px;
+    background:var(--paper);
+    padding:0 10px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    color:var(--ink);
+    font-weight:600;
+  }
+  .composer-inner{padding:24px 26px 22px}
+  .composer-title{
+    width:100%;
+    border:none;
+    background:transparent;
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:32px;
+    color:var(--ink);
+    outline:none;
+    padding:4px 0 8px;
+    letter-spacing:-.01em;
+  }
+  .composer-title::placeholder{
+    color:var(--muted);
+    font-style:italic;
+    font-weight:300;
+  }
+  .composer-body{
+    width:100%;
+    border:none;
+    background:transparent;
+    font-family:'Noto Sans SC',serif;
+    font-size:15px;
+    color:var(--ink-soft);
+    outline:none;
+    resize:vertical;
+    min-height:80px;
+    padding:4px 0;
+    line-height:1.7;
+  }
+  .composer-body::placeholder{color:var(--muted);font-style:italic}
+  .composer-foot{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px dashed var(--rule);
+  }
+  .author-field{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    background:transparent;
+    border:none;
+    border-bottom:1px solid var(--ink);
+    padding:4px 8px;
+    color:var(--ink);
+    outline:none;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    width:140px;
+  }
+  .author-field::placeholder{color:var(--muted);font-style:italic;text-transform:none;letter-spacing:0}
+  .tag-pills{display:flex;gap:6px;flex-wrap:wrap}
+  .pill{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    padding:4px 10px;
+    border:1.5px solid var(--ink);
+    background:var(--paper);
+    cursor:pointer;
+    color:var(--ink);
+    transition:all .15s;
+    user-select:none;
+  }
+  .pill:hover{background:var(--ink);color:var(--paper)}
+  .pill.active{background:var(--ink);color:var(--paper)}
+  .pill[data-color="1"].active{background:var(--tag-1);border-color:var(--tag-1)}
+  .pill[data-color="2"].active{background:var(--tag-2);border-color:var(--tag-2)}
+  .pill[data-color="3"].active{background:var(--tag-3);border-color:var(--tag-3)}
+  .pill[data-color="4"].active{background:var(--tag-4);border-color:var(--tag-4)}
+  .pill[data-color="5"].active{background:var(--tag-5);border-color:var(--tag-5)}
+
+  /* ============ NOTE GRID ============ */
+  .feed{
+    max-width:1200px;
+    margin:0 auto;
+    columns:3 320px;
+    column-gap:24px;
+  }
+  .note{
+    break-inside:avoid;
+    margin-bottom:24px;
+    background:var(--paper);
+    border:2px solid var(--ink);
+    padding:18px 20px 16px;
+    position:relative;
+    transition:transform .25s ease, box-shadow .25s ease;
+    animation:noteIn .5s ease both;
+  }
+  @keyframes noteIn{
+    from{opacity:0;transform:translateY(12px) rotate(-1deg)}
+    to{opacity:1;transform:translateY(0) rotate(0)}
+  }
+  .note:nth-child(3n+2){background:var(--paper-2)}
+  .note:hover{
+    transform:translate(-2px,-2px);
+    box-shadow:6px 6px 0 var(--ink);
+  }
+  .note.highlight{
+    animation:flash 1.2s ease;
+  }
+  @keyframes flash{
+    0%{box-shadow:0 0 0 6px var(--accent-2)}
+    100%{box-shadow:none}
+  }
+  .note-tag{
+    display:inline-block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    padding:3px 8px;
+    background:var(--ink);
+    color:var(--paper);
+    margin-bottom:10px;
+    font-weight:600;
+  }
+  .note[data-color="1"] .note-tag{background:var(--tag-1)}
+  .note[data-color="2"] .note-tag{background:var(--tag-2)}
+  .note[data-color="3"] .note-tag{background:var(--tag-3)}
+  .note[data-color="4"] .note-tag{background:var(--tag-4)}
+  .note[data-color="5"] .note-tag{background:var(--tag-5)}
+  .note-title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:22px;
+    line-height:1.2;
+    color:var(--ink);
+    margin-bottom:8px;
+    letter-spacing:-.01em;
+    word-break:break-word;
+  }
+  .note-title[contenteditable=true]:focus{
+    outline:none;
+    background:rgba(232,185,73,.25);
+  }
+  .note-body{
+    font-family:'Noto Sans SC',serif;
+    font-size:14px;
+    line-height:1.7;
+    color:var(--ink-soft);
+    white-space:pre-wrap;
+    word-break:break-word;
+    min-height:1em;
+  }
+  .note-body[contenteditable=true]:focus{
+    outline:none;
+    background:rgba(232,185,73,.18);
+  }
+  .note-foot{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:14px;
+    padding-top:10px;
+    border-top:1px dashed var(--rule);
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--muted);
+    letter-spacing:.06em;
+    text-transform:uppercase;
+  }
+  .note-author{color:var(--ink);font-weight:600}
+  .note-time{font-style:italic;font-family:'Fraunces',serif;text-transform:none;letter-spacing:0;font-size:11px;color:var(--muted)}
+  .note-del{
+    background:none;
+    border:none;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:14px;
+    padding:0 4px;
+    transition:color .15s;
+    font-family:'Fraunces',serif;
+  }
+  .note-del:hover{color:var(--accent)}
+
+  .empty{
+    max-width:1200px;
+    margin:60px auto;
+    text-align:center;
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    font-size:24px;
+    color:var(--muted);
+    padding:60px 0;
+    border-top:2px solid var(--rule);
+    border-bottom:2px solid var(--rule);
+  }
+  .empty span{display:block;font-size:14px;margin-top:10px;color:var(--muted);font-style:normal;font-family:'JetBrains Mono',monospace;letter-spacing:.15em;text-transform:uppercase}
+
+  /* ============ MODAL ============ */
+  .modal-bg{
+    position:fixed;inset:0;
+    background:rgba(26,24,20,.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:20px;
+  }
+  .modal-bg.show{display:flex}
+  .modal{
+    background:var(--paper);
+    border:3px solid var(--ink);
+    box-shadow:10px 10px 0 var(--ink);
+    max-width:480px;
+    width:100%;
+    padding:24px 26px;
+  }
+  .modal h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:24px;
+    margin-bottom:14px;
+    border-bottom:2px solid var(--rule);
+    padding-bottom:10px;
+  }
+  .modal p{
+    font-size:13px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    margin-bottom:12px;
+  }
+  .modal code{
+    font-family:'JetBrains Mono',monospace;
+    background:var(--paper-2);
+    padding:2px 6px;
+    font-size:12px;
+    border:1px solid var(--rule);
+    display:inline-block;
+    margin:2px 0;
+  }
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+    justify-content:flex-end;
+  }
+
+  /* ============ TOAST ============ */
+  .toast{
+    position:fixed;
+    bottom:24px;left:50%;
+    transform:translateX(-50%) translateY(80px);
+    background:var(--ink);
+    color:var(--paper);
+    padding:12px 22px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    border:2px solid var(--ink);
+    box-shadow:6px 6px 0 var(--accent);
+    opacity:0;
+    transition:all .3s ease;
+    z-index:200;
+    pointer-events:none;
+  }
+  .toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width:760px){
+    body{padding:24px 16px 60px}
+    .title-main{font-size:48px}
+    .vol{font-size:42px}
+    .composer-title{font-size:24px}
+    .feed{columns:1}
+    .stats{gap:18px;font-size:13px}
+  }
 </style>
 </head>
 <body>
-  <!-- 右上角实时状态徽标 -->
-  <div id="status" class="status">连接中…</div>
 
-  <div class="wrap">
-    <h1>团队知识库 & 任务备忘</h1>
-    <div class="sub">实时共享：所有访问者看到的内容会自动同步（每 3 秒刷新）</div>
-
-    <div class="tabs">
-      <button class="tab active" data-tab="task" onclick="switchTab('task')">📋 任务备忘</button>
-      <button class="tab" data-tab="doc"  onclick="switchTab('doc')">📚 信息共享</button>
-    </div>
-
-    <!-- 任务面板 -->
-    <div id="panel-task">
-      <div class="add">
-        <div class="meta">
-          <input type="text" id="tText" placeholder="任务内容…" onkeydown="if(event.key==='Enter')addTask()">
-          <input type="text" id="tWho"  placeholder="负责人（可选）" style="max-width:140px">
-        </div>
-        <div class="btnrow">
-          <button class="btn" onclick="addTask()">+ 添加任务</button>
-        </div>
+<header class="masthead">
+  <div class="title-row">
+    <div class="title-left">
+      <div class="vol">№ 01<small>Vol. MMXXVI</small></div>
+      <div>
+        <h1 class="title-main">Team <em>Live</em> Notes</h1>
+        <div class="subtitle">— 团队实时信息共享与备忘录 —</div>
       </div>
-      <div id="taskList"></div>
     </div>
-
-    <!-- 信息共享面板 -->
-    <div id="panel-doc" style="display:none">
-      <div class="add">
-        <input type="text" id="dTitle" placeholder="标题，如：实验操作流程">
-        <textarea id="dBody" placeholder="详细内容，支持换行…"></textarea>
-        <div class="btnrow">
-          <button class="btn" onclick="addDoc()">+ 发布信息</button>
-        </div>
-      </div>
-      <div id="docList"></div>
+    <div class="meta-strip">
+      <span><span class="dot"></span> SYNC · LIVE</span>
+      <span class="sep">|</span>
+      <span id="clock">--:--:--</span>
+      <span class="sep">|</span>
+      <span id="dateStr">—</span>
     </div>
   </div>
+</header>
+
+<section class="toolbar">
+  <input id="searchBox" type="text" placeholder="搜索备忘...  Search notes..." />
+  <select id="filterTag" class="tag-select">
+    <option value="all">全部 TAGS</option>
+  </select>
+  <button class="btn ghost" id="exportBtn">↓ 导出 JSON</button>
+  <button class="btn ghost" id="importBtn">↑ 导入 JSON</button>
+  <button class="btn ghost" id="syncBtn">⟳ 跨设备同步</button>
+  <button class="btn ghost" id="clearBtn">清空</button>
+</section>
+
+<div class="stats">
+  <span><b id="statTotal">0</b>条记录</span>
+  <span><b id="statTags">0</b>个标签</span>
+  <span><b id="statAuthors">0</b>位协作者</span>
+  <span><b id="statToday">0</b>条今日新增</span>
+</div>
+
+<section class="composer">
+  <div class="composer-inner">
+    <input id="cTitle" class="composer-title" type="text" placeholder="写下标题... A headline..." maxlength="80" />
+    <textarea id="cBody" class="composer-body" placeholder="详细内容... Markdown 暂不支持,纯文本即可..."></textarea>
+    <div class="composer-foot">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input id="cAuthor" class="author-field" type="text" placeholder="署名" maxlength="20" />
+        <div class="tag-pills" id="tagPills">
+          <span class="pill active" data-tag="备忘" data-color="1">备忘</span>
+          <span class="pill" data-tag="任务" data-color="2">任务</span>
+          <span class="pill" data-tag="通知" data-color="3">通知</span>
+          <span class="pill" data-tag="链接" data-color="4">链接</span>
+          <span class="pill" data-tag="想法" data-color="5">想法</span>
+          <span class="pill" data-tag="其他" data-color="6">其他</span>
+        </div>
+      </div>
+      <button class="btn" id="postBtn">发布 · POST ↵</button>
+    </div>
+  </div>
+</section>
+
+<main id="feed" class="feed"></main>
+
+<div id="empty" class="empty" style="display:none">
+  暂无备忘录
+  <span>Be the first to scribe.</span>
+</div>
+
+<!-- Sync modal -->
+<div id="syncModal" class="modal-bg">
+  <div class="modal">
+    <h3>⟳ 跨设备同步</h3>
+    <p>本页面使用 <code>BroadcastChannel</code> + <code>localStorage</code> 实现同浏览器实时同步。打开同一个浏览器的多个标签页即可看到实时变化。</p>
+    <p style="margin-top:10px">要在不同设备 / 浏览器之间同步,可点击 <b>导出 JSON</b> 把数据复制出来,再在另一端 <b>导入 JSON</b>。所有操作都是端到端本地完成,不会上传任何服务器。</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="closeSync">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div id="confirmModal" class="modal-bg">
+  <div class="modal">
+    <h3 id="confirmTitle">确认操作</h3>
+    <p id="confirmMsg">确定执行此操作?</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="confirmCancel">取消</button>
+      <button class="btn" id="confirmOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden import -->
+<input type="file" id="importFile" accept="application/json" style="display:none" />
+
+<div id="toast" class="toast"></div>
 
 <script>
-/* ================================================================
- *  配置区
- *  ----------------------------------------------------------------
- *  NAMESPACE = 团队命名空间。所有访问者必须使用同一个名字才能共享。
- *  改成你自己团队独特的英文+数字串即可，例如：
- *      const NAMESPACE = 'lab-zhang-2026';
- *      const NAMESPACE = 'team-mycompany-abc';
- *  MantleDB 是免费的免注册 KV 存储，公共命名空间任何人都能读写：
- *      POST https://mantledb.sh/v2/<NAMESPACE>/<path>   ← 写入
- *      GET   https://mantledb.sh/v2/<NAMESPACE>/<path>   ← 读取
- * ================================================================ */
-const NAMESPACE     = 'team-knowledge-shared-demo';  // ← 改成你自己的名字
-const BASE_URL      = 'https://mantledb.sh/v2/' + NAMESPACE;
-const POLL_INTERVAL = 3000;   // 轮询间隔（毫秒）；觉得太频繁可以调到 5000
+/* =====================================================
+   STATE & STORAGE
+===================================================== */
+const STORAGE_KEY = 'team-live-notes:v1';
+const CHANNEL_NAME = 'team-live-notes:channel';
+const AUTHOR_KEY = 'team-live-notes:author';
 
-/* ================================================================
- *  全局状态
- *  ----------------------------------------------------------------
- *  tasks / docs 是当前内存中的数据；
- *  lastTasksTs / lastDocsTs 是上一次同步到的时间戳，用来判断是否需要更新。
- * ================================================================ */
-let tasks        = [];
-let docs         = [];
-let lastTasksTs  = 0;
-let lastDocsTs   = 0;
+let state = {
+  notes: [],
+  seq: 0
+};
 
-/* ================================================================
- *  工具函数
- * ================================================================ */
+let currentTag = '备忘';
+let currentColor = 1;
+let searchQuery = '';
+let filterTagValue = 'all';
 
-// 生成短 id，避免和别人的 id 撞function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
+const channel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel(CHANNEL_NAME) : null;
+const bcPeers = new Set(); // for fallback polling
 
-// HTML 转义：避免用户输入的 < > & 破坏页面
-function esc(s) {
-  return String(s || '').replace(/[&<>]/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;'
-  }[c]));
-}
-
-/**
- * 读取一个 entry
- * @returns {Promise<Object|null>} 不存在返回 null；失败返回 null 并打印日志
- */
-async function loadEntry(path) {
+function load() {
   try {
-    const res = await fetch(BASE_URL + '/' + path, { cache: 'no-store' });
-    if (res.status === 404) return null;            // 首次访问，正常情况
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return await res.json();
-  } catch (e) {
-    console.error('读取失败 [' + path + ']：', e);
-    return null;
-  }
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      state.notes = parsed.notes || [];
+      state.seq = parsed.seq || 0;
+    }
+  } catch (e) { console.warn(e); }
 }
 
-/**
- * 写入一个 entry（POST 整体覆盖）
- * 整个任务列表 / 文档列表被打包成一个 JSON 对象写入。
- */
-async function saveEntry(path, data) {
-  const res = await fetch(BASE_URL + '/' + path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    throw new Error('HTTP ' + res.status + ' ' + txt);
-  }
-  return res.json();
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-/* ================================================================
- *  标签切换
- * ================================================================ */
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(b => {
-    b.classList.toggle('active', b.dataset.tab === name);
-  });
-  document.getElementById('panel-task').style.display = name === 'task' ? '' : 'none';
-  document.getElementById('panel-doc').style.display  = name === 'doc'  ? '' : 'none';
-}
-
-/* ================================================================
- *  任务 CRUD *  ----------------------------------------------------------------
- *  每个 async 函数都遵循"乐观更新"模式：
- *    1. 先改本地状态，立即 renderTasks() 让 UI 立刻响应
- *    2. 再异步 await persistTasks() 把整个数组 POST 到云端
- *    3. 失败时只在状态条提示，不回滚 UI（用户重新刷新即可拿到服务器真值）
- * ================================================================ */
-
-async function addTask() {
-  const tEl = document.getElementById('tText');
-  const wEl = document.getElementById('tWho');
-  const text = tEl.value.trim();
-  if (!text) return;
-  tasks.unshift({
-    id:   genId(),
-    text,
-    who:  wEl.value.trim(),
-    done: false,
-    ts:   Date.now()
-  });
-  tEl.value = ''; wEl.value = '';
-  renderTasks();
-  await persistTasks();
-}
-
-async function toggleTask(id) {
-  const t = tasks.find(x => x.id === id);
-  if (!t) return;
-  t.done = !t.done;
-  renderTasks();
-  await persistTasks();
-}
-
-async function delTask(id) {
-  if (!confirm('确定删除此任务吗？')) return;
-  tasks = tasks.filter(x => x.id !== id);
-  renderTasks();
-  await persistTasks();
-}
-
-async function editTask(id) {
-  const t = tasks.find(x => x.id === id);
-  if (!t) return;
-  const nv = prompt('修改任务内容：', t.text);
-  if (nv !== null && nv.trim()) {
-    t.text = nv.trim();
-    t.ts   = Date.now();
-    renderTasks();
-    await persistTasks();
-  }
-}
-
-async function persistTasks() {
-  const ts = Date.now();
+function broadcast(type, payload) {
+  const msg = { type, payload, ts: Date.now() };
+  if (channel) channel.postMessage(msg);
+  // localStorage fallback for cross-tab (also triggers storage event)
   try {
-    await saveEntry('tasks', { items: tasks, ts });
-    lastTasksTs = ts;
-  } catch (e) {
-    showError('任务保存失败：' + e.message);
+    localStorage.setItem(STORAGE_KEY + ':signal', JSON.stringify(msg));
+    localStorage.removeItem(STORAGE_KEY + ':signal');
+  } catch (e) {}
+}
+
+function applyRemote(msg) {
+  if (msg.type === 'state-replace') {
+    state = msg.payload;
+    save();
+    render();
+    toast('⟳ 同步更新已应用');
+  } else if (msg.type === 'note-add') {
+    if (!state.notes.find(n => n.id === msg.payload.id)) {
+      state.notes.unshift(msg.payload);
+      state.seq = Math.max(state.seq, msg.payload.seq || 0);
+      save();
+      render();
+      flashNote(msg.payload.id);
+    }
+  } else if (msg.type === 'note-update') {
+    const idx = state.notes.findIndex(n => n.id === msg.payload.id);
+    if (idx >= 0) {
+      state.notes[idx] = { ...state.notes[idx], ...msg.payload, updatedAt: Date.now() };
+      save();
+      render();
+      flashNote(msg.payload.id);
+    }
+  } else if (msg.type === 'note-delete') {
+    state.notes = state.notes.filter(n => n.id !== msg.payload.id);
+    save();
+    render();
+    toast('已删除一条记录');
+  } else if (msg.type === 'state-clear') {
+    state = { notes: [], seq: 0 };
+    save();
+    render();
+    toast('已清空');
   }
 }
 
-function renderTasks() {
-  const el = document.getElementById('taskList');
-  if (!tasks.length) {
-    el.innerHTML = '<div class="empty">还没有任务，在上面添加一条吧</div>';
-    return;
+if (channel) {
+  channel.onmessage = (ev) => applyRemote(ev.data);
+}
+
+// localStorage fallback for cross-tab sync
+window.addEventListener('storage', (e) => {
+  if (e.key === STORAGE_KEY + ':signal' && e.newValue) {
+    try { applyRemote(JSON.parse(e.newValue)); } catch (err) {}
+  } else if (e.key === STORAGE_KEY) {
+    load();
+    render();
   }
-  el.innerHTML = tasks.map(t => `
-    <div class="item ${t.done ? 'done' : ''}">
-      <input type="checkbox" ${t.done ? 'checked' : ''} onclick="toggleTask('${t.id}')">
-      <div class="t-body">
-        <div class="t-text">${esc(t.text)}</div>
-        ${t.who ? `<div class="t-meta"><span class="tag">@${esc(t.who)}</span></div>` : ''}
-      </div>
-      <div class="t-actions">
-        <button class="edit" onclick="editTask('${t.id}')" title="编辑">✎</button>
-        <button class="del"  onclick="delTask('${t.id}')"  title="删除">×</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-/* ================================================================
- *  信息共享 CRUD
- * ================================================================ */
-
-async function addDoc() {
-  const tEl = document.getElementById('dTitle');
-  const bEl = document.getElementById('dBody');
-  const title = tEl.value.trim();
-  const body  = bEl.value.trim();
-  if (!title || !body) { alert('请填写标题和内容'); return; }
-  docs.unshift({
-    id:    genId(),
-    title,
-    body,
-    ts:    Date.now()
-  });
-  tEl.value = ''; bEl.value = '';
-  renderDocs();
-  await persistDocs();
-}
-
-async function delDoc(id) {
-  if (!confirm('确定删除这条信息吗？')) return;
-  docs = docs.filter(x => x.id !== id);
-  renderDocs();
-  await persistDocs();
-}
-
-async function editDoc(id) {
-  const d = docs.find(x => x.id === id);
-  if (!d) return;
-  const card = document.querySelector('[data-id="' + id + '"]');
-  if (!card) return;
-  // 整张卡片替换为可编辑控件
-  card.innerHTML = `
-    <input type="text" id="ed-t-${id}" value="${esc(d.title)}"
-      style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:0.45rem 0.65rem;font-size:0.95rem;font-family:inherit;margin-bottom:0.4rem">
-    <textarea id="ed-b-${id}"
-      style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:0.45rem 0.65rem;font-size:0.9rem;font-family:inherit;min-height:120px;resize:vertical">${esc(d.body)}</textarea>
-    <div class="actions">
-      <button class="save" onclick="saveDocEdit('${id}')">保存</button>
-      <button class="del"  onclick="renderDocs()">取消</button>
-    </div>
-  `;
-}
-
-async function saveDocEdit(id) {
-  const t = document.getElementById('ed-t-' + id).value.trim();
-  const b = document.getElementById('ed-b-' + id).value.trim();
-  if (!t || !b) { alert('标题和内容不能为空'); return; }
-  const d = docs.find(x => x.id === id);
-  if (!d) return;
-  d.title = t;
-  d.body  = b;
-  d.ts    = Date.now();
-  renderDocs();
-  await persistDocs();
-}
-
-async function persistDocs() {
-  const ts = Date.now();
-  try {
-    await saveEntry('docs', { items: docs, ts });
-    lastDocsTs = ts;
-  } catch (e) {
-    showError('信息保存失败：' + e.message);
-  }
-}
-
-function renderDocs() {
-  const el = document.getElementById('docList');
-  if (!docs.length) {
-    el.innerHTML = '<div class="empty">还没有共享信息，在上面发布第一条</div>';
-    return;
-  }
-  el.innerHTML = docs.map(d => `
-    <div class="doc" data-id="${d.id}">
-      <h3>${esc(d.title)}</h3>
-      <div class="body">${esc(d.body)}</div>
-      <div class="actions">
-        <button class="save" onclick="editDoc('${d.id}')">编辑</button>
-        <button class="del"  onclick="delDoc('${d.id}')">删除</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-/* ================================================================
- *  轮询同步 —— 让所有人看到的列表保持一致
- *  ----------------------------------------------------------------
- *  每 3 秒拉一次云端数据。如果云端时间戳 ts 比本地新，就用云端数据 *  覆盖本地（这里简化处理：最后写入获胜；小团队完全够用）。
- * ================================================================ */
-
-async function pollOnce() {
-  // 同步 tasks
-  const tData = await loadEntry('tasks');
-  if (tData && tData.ts > lastTasksTs) {
-    tasks       = tData.items || [];
-    lastTasksTs = tData.ts;
-    renderTasks();
-  }
-  // 同步 docs
-  const dData = await loadEntry('docs');
-  if (dData && dData.ts > lastDocsTs) {
-    docs       = dData.items || [];
-    lastDocsTs = dData.ts;
-    renderDocs();
-  }
-}
-
-function startPolling() {
-  // 用 setTimeout 递归而不是 setInterval，避免上一次还没结束就开始下一次
-  setTimeout(async function tick() {
-    try { await pollOnce(); }
-    catch (e) { console.error('轮询出错：', e); }
-    setTimeout(tick, POLL_INTERVAL);
-  }, POLL_INTERVAL);
-}
-
-/* ================================================================
- *  错误展示（右上角状态条）
- * ================================================================ */
-function showError(msg) {
-  const el = document.getElementById('status');
-  el.textContent = '⚠ ' + msg;
-  el.classList.remove('online');
-  el.classList.add('error');
-}
-
-/* ================================================================
- *  初始化
- *  ----------------------------------------------------------------
- *  1) 加载 tasks *  2) 加载 docs；首次进入会插入一条示例文档
- *  3) 渲染 UI *  4) 启动轮询
- * ================================================================ */
-async function init() {
-  const statusEl = document.getElementById('status');
-  statusEl.textContent = '○ 加载中…';
-
-  // 读取任务列表
-  const tData = await loadEntry('tasks');
-  if (tData) {
-    tasks       = tData.items || [];
-    lastTasksTs = tData.ts || 0;
-  }
-
-  // 读取文档列表；没有就插入示例
-  const dData = await loadEntry('docs');
-  if (dData) {
-    docs       = dData.items || [];
-    lastDocsTs = dData.ts || 0;
-  }
-
-  if (!docs.length) {
-    docs = [{
-      id:    genId(),
-      title: '示例：实验操作标准流程',
-      body:  '1. 样品前处理\n2. 试剂配制（A:B = 1:3）\n3. 上机测量并记录\n4. 数据归档至共享盘 /lab/yyyy-mm-dd\n\n注意事项：佩戴手套，避免交叉污染。',
-      ts:    Date.now()
-    }];
-    await persistDocs();
-  }
-
-  renderTasks();
-  renderDocs();
-
-  // 状态：在线
-  statusEl.textContent = '● 已同步（每 3 秒自动刷新）';
-  statusEl.classList.add('online');
-  statusEl.classList.remove('error');
-
-  startPolling();
-}
-
-// 启动
-init().catch(e => {
-  showError('初始化失败：' + e.message);
 });
+
+/* =====================================================
+   HELPERS
+===================================================== */
+function uid() {
+  return 'n_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function fmtTime(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return Math.floor(diff/60) + ' 分钟前';
+  if (diff < 86400) return Math.floor(diff/3600) + ' 小时前';
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return '今天 ' + d.toTimeString().slice(0,5);
+  const yest = new Date(now - 86400000);
+  if (d.toDateString() === yest.toDateString()) return '昨天 ' + d.toTimeString().slice(0,5);
+  const yy = String(d.getFullYear()).slice(2);
+  return `${yy}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${d.toTimeString().slice(0,5)}`;
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function flashNote(id) {
+  setTimeout(() => {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (el) {
+      el.classList.add('highlight');
+      setTimeout(() => el.classList.remove('highlight'), 1200);
+    }
+  }, 30);
+}
+
+/* =====================================================
+   RENDER
+===================================================== */
+function render() {
+  const feed = document.getElementById('feed');
+  const empty = document.getElementById('empty');
+
+  // Update filter options
+  const filterTag = document.getElementById('filterTag');
+  const tags = Array.from(new Set(state.notes.map(n => n.tag)));
+  const filterHtml = ['<option value="all">全部 TAGS</option>']
+    .concat(tags.map(t => `<option value="${esc(t)}">${esc(t)}</option>`)).join('');
+  if (filterTag.innerHTML !== filterHtml) {
+    filterTag.innerHTML = filterHtml;
+    filterTag.value = filterTagValue;
+    if (filterTag.value !== filterTagValue) {
+      filterTagValue = 'all';
+      filterTag.value = 'all';
+    }
+  }
+
+  // Filter & search
+  let list = state.notes.slice();
+  if (filterTagValue !== 'all') list = list.filter(n => n.tag === filterTagValue);
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    list = list.filter(n =>
+      (n.title||'').toLowerCase().includes(q) ||
+      (n.body||'').toLowerCase().includes(q) ||
+      (n.author||'').toLowerCase().includes(q)
+    );
+  }
+
+  // Stats
+  const today = new Date(); today.setHours(0,0,0,0);
+  document.getElementById('statTotal').textContent = state.notes.length;
+  document.getElementById('statTags').textContent = new Set(state.notes.map(n=>n.tag)).size;
+  document.getElementById('statAuthors').textContent = new Set(state.notes.map(n=>n.author||'匿名')).size;
+  document.getElementById('statToday').textContent = state.notes.filter(n => n.createdAt >= today.getTime()).length;
+
+  if (list.length === 0) {
+    feed.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  feed.innerHTML = list.map(n => `
+    <article class="note" data-id="${esc(n.id)}" data-color="${esc(n.color||1)}">
+      <span class="note-tag">${esc(n.tag)}</span>
+      <div class="note-title" contenteditable="true" data-field="title">${esc(n.title)}</div>
+      <div class="note-body" contenteditable="true" data-field="body">${esc(n.body)}</div>
+      <div class="note-foot">
+        <span>by <span class="note-author">${esc(n.author||'匿名')}</span> · <span class="note-time" title="${new Date(n.createdAt).toLocaleString()}">${fmtTime(n.createdAt)}</span></span>
+        <button class="note-del" title="删除">✕</button>
+      </div>
+    </article>
+  `).join('');
+
+  // bind edit/delete
+  feed.querySelectorAll('.note-title, .note-body').forEach(el => {
+    let timer;
+    el.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const noteEl = el.closest('.note');
+        const id = noteEl.dataset.id;
+        const field = el.dataset.field;
+        const note = state.notes.find(n => n.id === id);
+        if (!note) return;
+        note[field] = el.innerText.trim();
+        note.updatedAt = Date.now();
+        save();
+        broadcast('note-update', { id, [field]: note[field] });
+      }, 350);
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && el.classList.contains('note-title')) {
+        e.preventDefault();
+        el.blur();
+      }
+    });
+  });
+
+  feed.querySelectorAll('.note-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.closest('.note').dataset.id;
+      confirmDialog('删除这条备忘录?', '此操作不可撤销。', () => {
+        state.notes = state.notes.filter(n => n.id !== id);
+        save();
+        broadcast('note-delete', { id });
+        render();
+        toast('已删除');
+      });
+    });
+  });
+}
+
+/* =====================================================
+   ACTIONS
+===================================================== */
+function postNote() {
+  const titleEl = document.getElementById('cTitle');
+  const bodyEl = document.getElementById('cBody');
+  const authorEl = document.getElementById('cAuthor');
+  const title = titleEl.value.trim();
+  const body = bodyEl.value.trim();
+  if (!title && !body) {
+    toast('标题或内容至少填一项');
+    return;
+  }
+  const author = authorEl.value.trim() || localStorage.getItem(AUTHOR_KEY) || '';
+  if (author) localStorage.setItem(AUTHOR_KEY, author);
+  const note = {
+    id: uid(),
+    title: title || '(无标题)',
+    body,
+    author: author || '匿名',
+    tag: currentTag,
+    color: currentColor,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    seq: ++state.seq
+  };
+  state.notes.unshift(note);
+  save();
+  broadcast('note-add', note);
+  render();
+  flashNote(note.id);
+  titleEl.value = '';
+  bodyEl.value = '';
+  toast('已发布 · 所有人可见');
+}
+
+/* =====================================================
+   DIALOGS
+===================================================== */
+function confirmDialog(title, msg, onOk) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  const m = document.getElementById('confirmModal');
+  m.classList.add('show');
+  const ok = document.getElementById('confirmOk');
+  const cancel = document.getElementById('confirmCancel');
+  const close = () => { m.classList.remove('show'); ok.onclick = null; cancel.onclick = null; };
+  ok.onclick = () => { close(); onOk(); };
+  cancel.onclick = close;
+}
+
+/* =====================================================
+   EXPORT / IMPORT
+===================================================== */
+function exportJSON() {
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+  a.download = `team-notes-${ts}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('已导出 JSON 文件');
+}
+
+function importJSON(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.notes || !Array.isArray(parsed.notes)) throw new Error('格式错误');
+      confirmDialog('导入会覆盖当前数据,继续?', `将导入 ${parsed.notes.length} 条记录`, () => {
+        state = parsed;
+        save();
+        broadcast('state-replace', state);
+        render();
+        toast('导入成功 · 已广播给所有人');
+      });
+    } catch (err) {
+      toast('JSON 解析失败');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* =====================================================
+   CLOCK
+===================================================== */
+function tickClock() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('dateStr').textContent = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+function init() {
+  load();
+  // restore author
+  const savedAuthor = localStorage.getItem(AUTHOR_KEY);
+  if (savedAuthor) document.getElementById('cAuthor').value = savedAuthor;
+
+  // Tag pills
+  document.querySelectorAll('#tagPills .pill').forEach(p => {
+    p.addEventListener('click', () => {
+      document.querySelectorAll('#tagPills .pill').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      currentTag = p.dataset.tag;
+      currentColor = parseInt(p.dataset.color, 10);
+    });
+  });
+
+  // Composer
+  document.getElementById('postBtn').addEventListener('click', postNote);
+  document.getElementById('cBody').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); postNote(); }
+  });
+
+  // Search
+  document.getElementById('searchBox').addEventListener('input', (e) => {
+    searchQuery = e.target.value.trim();
+    render();
+  });
+  document.getElementById('filterTag').addEventListener('change', (e) => {
+    filterTagValue = e.target.value;
+    render();
+  });
+
+  // Toolbar
+  document.getElementById('exportBtn').addEventListener('click', exportJSON);
+  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) importJSON(f);
+    e.target.value = '';
+  });
+  document.getElementById('syncBtn').addEventListener('click', () => {
+    document.getElementById('syncModal').classList.add('show');
+    broadcast('state-replace', state); // re-broadcast current state to peers
+  });
+  document.getElementById('closeSync').addEventListener('click', () => {
+    document.getElementById('syncModal').classList.remove('show');
+  });
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (state.notes.length === 0) { toast('已经是空的'); return; }
+    confirmDialog('清空所有记录?', `将删除全部 ${state.notes.length} 条备忘录`, () => {
+      state = { notes: [], seq: 0 };
+      save();
+      broadcast('state-clear');
+      render();
+    });
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA' && !document.activeElement.isContentEditable) {
+      e.preventDefault();
+      document.getElementById('searchBox').focus();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if (document.activeElement.id === 'cBody' || document.activeElement.id === 'cTitle') {
+        e.preventDefault();
+        postNote();
+      }
+    }
+  });
+
+  render();
+  tickClock();
+  setInterval(tickClock, 1000);
+  setInterval(render, 60000); // refresh relative time
+
+  // Announce presence
+  setTimeout(() => broadcast('state-replace', state), 500);
+}
+
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
