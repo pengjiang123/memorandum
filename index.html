@@ -4,56 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>团队知识库 & 任务备忘</title>
-
-<!-- ============================================================
-     【共享版说明 - 配置完成后，所有人都可访问同一个网址】
-     ------------------------------------------------------------
-     原理：把原本只在 localStorage 中的数据搬到 Firebase Realtime
-     Database（Google 免费云数据库），所有人读写同一份数据。
-     任何添加 / 编辑 / 删除，所有人的页面会自动实时刷新。
-
-     ★ 部署步骤（仅需一次，之后所有人即可访问）：
-
-     ① 创建 Firebase 项目
-        - 打开 https://console.firebase.google.com/
-        - 点 "添加项目 / Add project"，按提示完成
-
-     ② 启用 Realtime Database
-        - 左侧菜单 → 构建 → Realtime Database
-        - 点 "创建数据库"，选位置（推荐 asia-southeast1 较近）
-        - 安全模式选 "Start in test mode"
-
-     ③ 设置数据库规则（关键！允许公开读写）
-        - 切到 "Rules" 标签，替换为：
-            {
-              "rules": {
-                ".read":  true,
-                ".write": true
-              }
-            }
-        - 点 "Publish" 发布
-        - ⚠ 生产环境请配合 Firebase Auth 做权限控制
-
-     ④ 获取 Web 配置
-        - 点齿轮 ⚙ → 项目设置 → 您的应用 → 点</> 注册 Web 应用
-        - 复制 firebaseConfig 对象内容
-
-     ⑤ 替换下方常量 firebaseConfig
-
-     ⑥ 部署到任意静态托管 - Firebase Hosting: firebase deploy --only hosting
-        - Vercel / Netlify / Cloudflare Pages: 拖入 index.html 即可
-        - GitHub Pages: 提交到仓库即可
-
-     完成后把网址发给队友即可共享。
-     ============================================================ -->
-
-<!-- Firebase JS SDK（兼容模式，无需 npm/构建工具） -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-
 <style>
   /* ===== 基础排版 ===== */
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding:0; }
   body {
     font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
     background: #f6f7fb;
@@ -205,7 +158,7 @@
 
   .empty { text-align: center; color: #9ca3af; padding: 2rem 0; font-size: 0.9rem; }
 
-  /* ===== 新增：实时连接状态徽标 ===== */
+  /* ===== 右上角连接状态 ===== */
   .status {
     position: fixed;
     top: 0.6rem; right: 0.6rem;
@@ -221,12 +174,12 @@
 </style>
 </head>
 <body>
-  <!-- 右上角连接状态指示 -->
+  <!-- 右上角实时状态徽标 -->
   <div id="status" class="status">连接中…</div>
 
   <div class="wrap">
     <h1>团队知识库 & 任务备忘</h1>
-    <div class="sub">实时共享：所有访问者看到的内容会自动同步</div>
+    <div class="sub">实时共享：所有访问者看到的内容会自动同步（每 3 秒刷新）</div>
 
     <div class="tabs">
       <button class="tab active" data-tab="task" onclick="switchTab('task')">📋 任务备忘</button>
@@ -262,108 +215,78 @@
 
 <script>
 /* ================================================================
- *  Firebase 项目配置
- *  取得方式：Firebase 控制台 → 项目设置 → 您的应用 → SDK 设置
+ *  配置区
+ *  ----------------------------------------------------------------
+ *  NAMESPACE = 团队命名空间。所有访问者必须使用同一个名字才能共享。
+ *  改成你自己团队独特的英文+数字串即可，例如：
+ *      const NAMESPACE = 'lab-zhang-2026';
+ *      const NAMESPACE = 'team-mycompany-abc';
+ *  MantleDB 是免费的免注册 KV 存储，公共命名空间任何人都能读写：
+ *      POST https://mantledb.sh/v2/<NAMESPACE>/<path>   ← 写入
+ *      GET   https://mantledb.sh/v2/<NAMESPACE>/<path>   ← 读取
  * ================================================================ */
-const firebaseConfig = {
-  apiKey:            "AIzaSyDummyReplaceMeWithYourOwnKey",
-  authDomain:        "your-project.firebaseapp.com",
-  databaseURL:       "https://your-project-default-rtdb.firebaseio.com",
-  projectId:         "your-project",
-  storageBucket:     "your-project.appspot.com",
-  messagingSenderId: "000000000000",
-  appId:             "1:000000000000:web:0000000000000000000000"
-};
+const NAMESPACE     = 'team-knowledge-shared-demo';  // ← 改成你自己的名字
+const BASE_URL      = 'https://mantledb.sh/v2/' + NAMESPACE;
+const POLL_INTERVAL = 3000;   // 轮询间隔（毫秒）；觉得太频繁可以调到 5000
 
 /* ================================================================
- *  防止用户没改配置就部署：在页面上明确提示
+ *  全局状态
+ *  ----------------------------------------------------------------
+ *  tasks / docs 是当前内存中的数据；
+ *  lastTasksTs / lastDocsTs 是上一次同步到的时间戳，用来判断是否需要更新。
  * ================================================================ */
-if (firebaseConfig.apiKey.includes('Dummy') || firebaseConfig.apiKey.includes('ReplaceMe')) {
-  document.getElementById('status').textContent = '⚠ 请先配置 Firebase';
-  document.getElementById('status').classList.add('error');
-  // 仍然继续执行，让用户能看到清晰的错误
+let tasks        = [];
+let docs         = [];
+let lastTasksTs  = 0;
+let lastDocsTs   = 0;
+
+/* ================================================================
+ *  工具函数
+ * ================================================================ */
+
+// 生成短 id，避免和别人的 id 撞function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-/* ================================================================
- *  初始化 Firebase 与数据库引用
- *  ----------------------------------------------------------------
- *  - initializeApp(firebaseConfig)  根据配置连接云端
- *  - database()                     拿到实时数据库实例
- *  - ref('tasks') / ref('docs')      创建数据节点引用，所有 CRUD 都走它
- * ================================================================ */
-firebase.initializeApp(firebaseConfig);
-const db        = firebase.database();
-const tasksRef  = db.ref('tasks');   // 顶层节点 'tasks'
-const docsRef   = db.ref('docs');    // 顶层节点 'docs'
+// HTML 转义：避免用户输入的 < > & 破坏页面
+function esc(s) {
+  return String(s || '').replace(/[&<>]/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;'
+  }[c]));
+}
 
-/* ================================================================
- *  实时连接状态监听
- *  ----------------------------------------------------------------
- *  .info/connected 是 Firebase 的特殊节点：
- *    true ⇄ WebSocket 已建立（在线）
- *    false ⇄ 断开（离线）
- *  用于显示右上角"在线/离线"徽标，让用户知道是否在实时同步。
- * ================================================================ */
-const connEl = document.getElementById('status');
-firebase.database().ref('.info/connected').on('value', (snap) => {
-  if (snap.val() === true) {
-    connEl.textContent = '● 已连接（实时同步）';
-    connEl.classList.add('online');
-    connEl.classList.remove('error');
-  } else {
-    connEl.textContent = '○ 离线（恢复后将自动同步）';
-    connEl.classList.remove('online');
+/**
+ * 读取一个 entry
+ * @returns {Promise<Object|null>} 不存在返回 null；失败返回 null 并打印日志
+ */
+async function loadEntry(path) {
+  try {
+    const res = await fetch(BASE_URL + '/' + path, { cache: 'no-store' });
+    if (res.status === 404) return null;            // 首次访问，正常情况
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } catch (e) {
+    console.error('读取失败 [' + path + ']：', e);
+    return null;
   }
-});
+}
 
-/* ================================================================
- *  本地缓存：由 on('value') 实时从云端同步而来
- * ================================================================ */
-let tasks = [];
-let docs  = [];
-
-/* ================================================================
- *  实时数据订阅 —— 实现"共享"的核心
- *  ----------------------------------------------------------------
- *  ref.on('value', cb) 会：
- *    1) 立即触发一次，回传当前最新数据
- *    2) 之后任意人修改云端数据，所有客户端的 cb 都会被触发
- *  因此只要数据在云端变化，所有人的页面会自动刷新。
- * ================================================================ */
-tasksRef.on('value', (snapshot) => {
-  // Firebase 把列表存为 {autoId1: obj1, autoId2: obj2}
-  // 这里把对象转成带 _key 的数组，便于按数组方式渲染与排序
-  const data = snapshot.val() || {};
-  tasks = Object.keys(data).map(k => ({ ...data[k], _key: k }));
-  tasks.sort((a, b) => (b.ts || 0) - (a.ts || 0)); // 最新置顶
-  renderTasks();
-}, (err) => {
-  console.error('任务同步失败：', err);
-  alert('任务数据同步出错：' + err.message);
-});
-
-docsRef.on('value', (snapshot) => {
-  const data = snapshot.val() || {};
-  docs = Object.keys(data).map(k => ({ ...data[k], _key: k }));
-  docs.sort((a, b) => (b.ts || 0) - (a.ts || 0));
-  renderDocs();
-}, (err) => {
-  console.error('文档同步失败：', err);
-});
-
-/* ================================================================
- *  首次进入时插入示例文档（仅当云端无任何数据时执行一次）
- * ================================================================ */
-docsRef.once('value', (snapshot) => {
-  if (!snapshot.exists()) {
-    docsRef.push({
-      title: '示例：实验操作标准流程',
-      body:  '1. 样品前处理\n2. 试剂配制（A:B = 1:3）\n3. 上机测量并记录\n4. 数据归档至共享盘 /lab/yyyy-mm-dd\n\n注意事项：佩戴手套，避免交叉污染。',
-      // ServerValue.TIMESTAMP 由服务器生成时间戳，所有人时间一致
-      ts:    firebase.database.ServerValue.TIMESTAMP
-    });
+/**
+ * 写入一个 entry（POST 整体覆盖）
+ * 整个任务列表 / 文档列表被打包成一个 JSON 对象写入。
+ */
+async function saveEntry(path, data) {
+  const res = await fetch(BASE_URL + '/' + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error('HTTP ' + res.status + ' ' + txt);
   }
-});
+  return res.json();
+}
 
 /* ================================================================
  *  标签切换
@@ -377,44 +300,64 @@ function switchTab(name) {
 }
 
 /* ================================================================
- *  任务 CRUD（写入云端；UI 由 tasksRef.on('value') 自动刷新）
+ *  任务 CRUD *  ----------------------------------------------------------------
+ *  每个 async 函数都遵循"乐观更新"模式：
+ *    1. 先改本地状态，立即 renderTasks() 让 UI 立刻响应
+ *    2. 再异步 await persistTasks() 把整个数组 POST 到云端
+ *    3. 失败时只在状态条提示，不回滚 UI（用户重新刷新即可拿到服务器真值）
  * ================================================================ */
-function addTask() {
+
+async function addTask() {
   const tEl = document.getElementById('tText');
   const wEl = document.getElementById('tWho');
   const text = tEl.value.trim();
   if (!text) return;
-  // push() 自动生成唯一 key（如 -NxYz...），所有客户端实时收到
-  tasksRef.push({
+  tasks.unshift({
+    id:   genId(),
     text,
     who:  wEl.value.trim(),
     done: false,
-    ts:   firebase.database.ServerValue.TIMESTAMP
+    ts:   Date.now()
   });
   tEl.value = ''; wEl.value = '';
+  renderTasks();
+  await persistTasks();
 }
 
-function toggleTask(key) {
-  const task = tasks.find(t => t._key === key);
-  if (!task) return;
-  // update() 只改 done 字段，其他字段保留
-  tasksRef.child(key).update({ done: !task.done });
+async function toggleTask(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  renderTasks();
+  await persistTasks();
 }
 
-function delTask(key) {
+async function delTask(id) {
   if (!confirm('确定删除此任务吗？')) return;
-  tasksRef.child(key).remove(); // 云端删除，所有客户端同步消失
+  tasks = tasks.filter(x => x.id !== id);
+  renderTasks();
+  await persistTasks();
 }
 
-function editTask(key) {
-  const task = tasks.find(t => t._key === key);
-  if (!task) return;
-  const nv = prompt('修改任务内容：', task.text);
+async function editTask(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  const nv = prompt('修改任务内容：', t.text);
   if (nv !== null && nv.trim()) {
-    tasksRef.child(key).update({
-      text: nv.trim(),
-      ts:   firebase.database.ServerValue.TIMESTAMP  // 更新后自动置顶
-    });
+    t.text = nv.trim();
+    t.ts   = Date.now();
+    renderTasks();
+    await persistTasks();
+  }
+}
+
+async function persistTasks() {
+  const ts = Date.now();
+  try {
+    await saveEntry('tasks', { items: tasks, ts });
+    lastTasksTs = ts;
+  } catch (e) {
+    showError('任务保存失败：' + e.message);
   }
 }
 
@@ -426,14 +369,14 @@ function renderTasks() {
   }
   el.innerHTML = tasks.map(t => `
     <div class="item ${t.done ? 'done' : ''}">
-      <input type="checkbox" ${t.done ? 'checked' : ''} onclick="toggleTask('${t._key}')">
+      <input type="checkbox" ${t.done ? 'checked' : ''} onclick="toggleTask('${t.id}')">
       <div class="t-body">
         <div class="t-text">${esc(t.text)}</div>
         ${t.who ? `<div class="t-meta"><span class="tag">@${esc(t.who)}</span></div>` : ''}
       </div>
       <div class="t-actions">
-        <button class="edit" onclick="editTask('${t._key}')" title="编辑">✎</button>
-        <button class="del"  onclick="delTask('${t._key}')"  title="删除">×</button>
+        <button class="edit" onclick="editTask('${t.id}')" title="编辑">✎</button>
+        <button class="del"  onclick="delTask('${t.id}')"  title="删除">×</button>
       </div>
     </div>
   `).join('');
@@ -442,53 +385,71 @@ function renderTasks() {
 /* ================================================================
  *  信息共享 CRUD
  * ================================================================ */
-function addDoc() {
+
+async function addDoc() {
   const tEl = document.getElementById('dTitle');
   const bEl = document.getElementById('dBody');
   const title = tEl.value.trim();
   const body  = bEl.value.trim();
   if (!title || !body) { alert('请填写标题和内容'); return; }
-  docsRef.push({
+  docs.unshift({
+    id:    genId(),
     title,
     body,
-    ts: firebase.database.ServerValue.TIMESTAMP
+    ts:    Date.now()
   });
   tEl.value = ''; bEl.value = '';
+  renderDocs();
+  await persistDocs();
 }
 
-function delDoc(key) {
+async function delDoc(id) {
   if (!confirm('确定删除这条信息吗？')) return;
-  docsRef.child(key).remove();
+  docs = docs.filter(x => x.id !== id);
+  renderDocs();
+  await persistDocs();
 }
 
-function editDoc(key) {
-  const d = docs.find(x => x._key === key);
+async function editDoc(id) {
+  const d = docs.find(x => x.id === id);
   if (!d) return;
-  const card = document.querySelector('[data-id="' + key + '"]');
+  const card = document.querySelector('[data-id="' + id + '"]');
   if (!card) return;
-  // 把卡片替换为可编辑控件（就地编辑）
+  // 整张卡片替换为可编辑控件
   card.innerHTML = `
-    <input type="text" id="ed-t-${key}" value="${esc(d.title)}"
+    <input type="text" id="ed-t-${id}" value="${esc(d.title)}"
       style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:0.45rem 0.65rem;font-size:0.95rem;font-family:inherit;margin-bottom:0.4rem">
-    <textarea id="ed-b-${key}"
+    <textarea id="ed-b-${id}"
       style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:0.45rem 0.65rem;font-size:0.9rem;font-family:inherit;min-height:120px;resize:vertical">${esc(d.body)}</textarea>
     <div class="actions">
-      <button class="save" onclick="saveDoc('${key}')">保存</button>
+      <button class="save" onclick="saveDocEdit('${id}')">保存</button>
       <button class="del"  onclick="renderDocs()">取消</button>
     </div>
   `;
 }
 
-function saveDoc(key) {
-  const t = document.getElementById('ed-t-' + key).value.trim();
-  const b = document.getElementById('ed-b-' + key).value.trim();
+async function saveDocEdit(id) {
+  const t = document.getElementById('ed-t-' + id).value.trim();
+  const b = document.getElementById('ed-b-' + id).value.trim();
   if (!t || !b) { alert('标题和内容不能为空'); return; }
-  docsRef.child(key).update({
-    title: t,
-    body:  b,
-    ts:    firebase.database.ServerValue.TIMESTAMP
-  });
-  // UI 刷新交给 docsRef.on('value') 完成，无需手动 render}
+  const d = docs.find(x => x.id === id);
+  if (!d) return;
+  d.title = t;
+  d.body  = b;
+  d.ts    = Date.now();
+  renderDocs();
+  await persistDocs();
+}
+
+async function persistDocs() {
+  const ts = Date.now();
+  try {
+    await saveEntry('docs', { items: docs, ts });
+    lastDocsTs = ts;
+  } catch (e) {
+    showError('信息保存失败：' + e.message);
+  }
+}
 
 function renderDocs() {
   const el = document.getElementById('docList');
@@ -497,25 +458,108 @@ function renderDocs() {
     return;
   }
   el.innerHTML = docs.map(d => `
-    <div class="doc" data-id="${d._key}">
+    <div class="doc" data-id="${d.id}">
       <h3>${esc(d.title)}</h3>
       <div class="body">${esc(d.body)}</div>
       <div class="actions">
-        <button class="save" onclick="editDoc('${d._key}')">编辑</button>
-        <button class="del"  onclick="delDoc('${d._key}')">删除</button>
+        <button class="save" onclick="editDoc('${d.id}')">编辑</button>
+        <button class="del"  onclick="delDoc('${d.id}')">删除</button>
       </div>
     </div>
   `).join('');
 }
 
 /* ================================================================
- *  HTML 转义工具：防止用户输入的 < > & 破坏页面结构
+ *  轮询同步 —— 让所有人看到的列表保持一致
+ *  ----------------------------------------------------------------
+ *  每 3 秒拉一次云端数据。如果云端时间戳 ts 比本地新，就用云端数据 *  覆盖本地（这里简化处理：最后写入获胜；小团队完全够用）。
  * ================================================================ */
-function esc(s) {
-  return String(s || '').replace(/[&<>]/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;'
-  }[c]));
+
+async function pollOnce() {
+  // 同步 tasks
+  const tData = await loadEntry('tasks');
+  if (tData && tData.ts > lastTasksTs) {
+    tasks       = tData.items || [];
+    lastTasksTs = tData.ts;
+    renderTasks();
+  }
+  // 同步 docs
+  const dData = await loadEntry('docs');
+  if (dData && dData.ts > lastDocsTs) {
+    docs       = dData.items || [];
+    lastDocsTs = dData.ts;
+    renderDocs();
+  }
 }
+
+function startPolling() {
+  // 用 setTimeout 递归而不是 setInterval，避免上一次还没结束就开始下一次
+  setTimeout(async function tick() {
+    try { await pollOnce(); }
+    catch (e) { console.error('轮询出错：', e); }
+    setTimeout(tick, POLL_INTERVAL);
+  }, POLL_INTERVAL);
+}
+
+/* ================================================================
+ *  错误展示（右上角状态条）
+ * ================================================================ */
+function showError(msg) {
+  const el = document.getElementById('status');
+  el.textContent = '⚠ ' + msg;
+  el.classList.remove('online');
+  el.classList.add('error');
+}
+
+/* ================================================================
+ *  初始化
+ *  ----------------------------------------------------------------
+ *  1) 加载 tasks *  2) 加载 docs；首次进入会插入一条示例文档
+ *  3) 渲染 UI *  4) 启动轮询
+ * ================================================================ */
+async function init() {
+  const statusEl = document.getElementById('status');
+  statusEl.textContent = '○ 加载中…';
+
+  // 读取任务列表
+  const tData = await loadEntry('tasks');
+  if (tData) {
+    tasks       = tData.items || [];
+    lastTasksTs = tData.ts || 0;
+  }
+
+  // 读取文档列表；没有就插入示例
+  const dData = await loadEntry('docs');
+  if (dData) {
+    docs       = dData.items || [];
+    lastDocsTs = dData.ts || 0;
+  }
+
+  if (!docs.length) {
+    docs = [{
+      id:    genId(),
+      title: '示例：实验操作标准流程',
+      body:  '1. 样品前处理\n2. 试剂配制（A:B = 1:3）\n3. 上机测量并记录\n4. 数据归档至共享盘 /lab/yyyy-mm-dd\n\n注意事项：佩戴手套，避免交叉污染。',
+      ts:    Date.now()
+    }];
+    await persistDocs();
+  }
+
+  renderTasks();
+  renderDocs();
+
+  // 状态：在线
+  statusEl.textContent = '● 已同步（每 3 秒自动刷新）';
+  statusEl.classList.add('online');
+  statusEl.classList.remove('error');
+
+  startPolling();
+}
+
+// 启动
+init().catch(e => {
+  showError('初始化失败：' + e.message);
+});
 </script>
 </body>
 </html>
